@@ -1,24 +1,13 @@
 import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
 import matplotlib.pyplot as plt
-from numpy.typing import NDArray
 from typing import Dict, List
-from sklearn.model_selection import train_test_split
 
-def load_data(filepath: str, sep: str = '\t') -> pd.DataFrame:
-    """
-    Carrega o dataset e define as colunas.
-    
-    Args:
-        filepath (str): Caminho para o arquivo.
-        sep (str): Separador dos dados.
-
-    Returns:
-        pd.DataFrame: DataFrame com os dados de entrada e saída.
-    """
-    df: pd.DataFrame = pd.read_csv(filepath, sep=sep)
-    df.columns = ['velocidade do vento', 'potência gerada']
-    return df
+from utils.load_data import load_data
+from utils.validacao_monte_carlo import validacao_monte_carlo
+from services.mqo_tradicional import fit_mqo_tradicional
+from services.mqo_regularizado import fit_mqo_regularizado
 
 def prepare_data(df: pd.DataFrame) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     """
@@ -35,34 +24,6 @@ def prepare_data(df: pd.DataFrame) -> tuple[NDArray[np.float64], NDArray[np.floa
     X: NDArray[np.float64] = np.concatenate((np.ones_like(velocidade_do_vento), velocidade_do_vento), axis=1)
     y: NDArray[np.float64] = potencia_gerada
     return X, y
-
-def fit_mqo_tradicional(X: NDArray[np.float64], y: NDArray[np.float64]) -> NDArray[np.float64]:
-    """
-    Calcula os coeficientes do MQO tradicional (Mínimos Quadrados Ordinários).
-    
-    Args:
-        X (NDArray[np.float64]): Matriz de entrada com as variáveis independentes.
-        y (NDArray[np.float64]): Matriz de saída com as variáveis dependentes.
-
-    Returns:
-        NDArray[np.float64]: Vetor de coeficientes estimados.
-    """
-    return np.linalg.pinv(X.T @ X) @ X.T @ y
-
-def fit_mqo_regularizado(X: NDArray[np.float64], y: NDArray[np.float64], lamb: float) -> NDArray[np.float64]:
-    """
-    Calcula os coeficientes do MQO regularizado com Tikhonov.
-    
-    Args:
-        X (NDArray[np.float64]): Matriz de entrada com as variáveis independentes.
-        y (NDArray[np.float64]): Matriz de saída com as variáveis dependentes.
-        lamb (float): Hiperparâmetro lambda para regularização.
-
-    Returns:
-        NDArray[np.float64]: Vetor de coeficientes estimados com regularização.
-    """
-    identity: NDArray[np.float64] = np.eye(X.shape[1])
-    return np.linalg.inv(X.T @ X + lamb * identity) @ X.T @ y
 
 def fit_media_observaveis(y: NDArray[np.float64]) -> float:
     """
@@ -88,52 +49,6 @@ def calcular_rss(y_true: NDArray[np.float64], y_pred: NDArray[np.float64]) -> fl
         float: Soma dos quadrados dos resíduos.
     """
     return np.sum((y_true - y_pred) ** 2)
-
-def validacao_monte_carlo(
-    X: NDArray[np.float64], 
-    y: NDArray[np.float64], 
-    R: int = 500
-) -> Dict[str, List[float]]:
-    """
-    Realiza a validação cruzada de Monte Carlo para diferentes valores de lambda.
-    
-    Args:
-        X (NDArray[np.float64]): Matriz de entrada com as variáveis independentes.
-        y (NDArray[np.float64]): Matriz de saída com as variáveis dependentes.
-        R (int): Número de iterações para a validação cruzada.
-
-    Returns:
-        Dict[str, List[float]]: Dicionário com os resultados de RSS para cada modelo.
-    """
-    rss_results: Dict[str, List[float]] = {
-        'MQO Tradicional': [],
-        'Média Observáveis': [],
-    }
-
-    lambdas = [0, 0.25, 0.5, 0.75, 1]
-    for lamb in lambdas:
-        rss_results[f'MQO Regularizado (λ={lamb})'] = []
-
-    for _ in range(R):
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
-
-        # MQO Tradicional
-        b_hat_tradicional = fit_mqo_tradicional(X_train, y_train)
-        y_pred_tradicional = X_test @ b_hat_tradicional
-        rss_results['MQO Tradicional'].append(calcular_rss(y_test, y_pred_tradicional))
-
-        # MQO Regularizado
-        for lamb in lambdas:
-            b_hat_regularizado = fit_mqo_regularizado(X_train, y_train, lamb)
-            y_pred_regularizado = X_test @ b_hat_regularizado
-            rss_results[f'MQO Regularizado (λ={lamb})'].append(calcular_rss(y_test, y_pred_regularizado))
-
-        # Média dos observáveis
-        media_observaveis = fit_media_observaveis(y_train)
-        y_pred_media = np.full_like(y_test, media_observaveis)
-        rss_results['Média Observáveis'].append(calcular_rss(y_test, y_pred_media))
-
-    return rss_results
 
 def calcular_estatisticas(rss_results: Dict[str, List[float]]) -> pd.DataFrame:
     """
@@ -234,7 +149,8 @@ def main() -> None:
     Returns:
         None
     """
-    df: pd.DataFrame = load_data('aerogerador.dat')
+    colunas = ['velocidade do vento', 'potência gerada']
+    df: pd.DataFrame = load_data(filepath='aerogerador.dat', columns=colunas, transpose=False, sep='\t')
     X, y = prepare_data(df)
     
     vizualizacao_inicial(X, y)
