@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from numpy.typing import NDArray
 from typing import Dict, List
+from sklearn.model_selection import train_test_split
 
 def load_data(filepath: str, sep: str = '\t') -> pd.DataFrame:
     """
@@ -116,21 +117,21 @@ def validacao_monte_carlo(
     for _ in range(R):
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
-        # Modelo MQO Tradicional
+        # MQO Tradicional
         b_hat_tradicional = fit_mqo_tradicional(X_train, y_train)
         y_pred_tradicional = X_test @ b_hat_tradicional
-        rss_results['MQO Tradicional'].append(calculate_rss(y_test, y_pred_tradicional))
+        rss_results['MQO Tradicional'].append(calcular_rss(y_test, y_pred_tradicional))
 
-        # Modelo MQO Regularizado para cada lambda
+        # MQO Regularizado
         for lamb in lambdas:
             b_hat_regularizado = fit_mqo_regularizado(X_train, y_train, lamb)
             y_pred_regularizado = X_test @ b_hat_regularizado
-            rss_results[f'MQO Regularizado (λ={lamb})'].append(calculate_rss(y_test, y_pred_regularizado))
+            rss_results[f'MQO Regularizado (λ={lamb})'].append(calcular_rss(y_test, y_pred_regularizado))
 
         # Média dos observáveis
         media_observaveis = fit_media_observaveis(y_train)
         y_pred_media = np.full_like(y_test, media_observaveis)
-        rss_results['Média Observáveis'].append(calculate_rss(y_test, y_pred_media))
+        rss_results['Média Observáveis'].append(calcular_rss(y_test, y_pred_media))
 
     return rss_results
 
@@ -248,6 +249,11 @@ def main() -> None:
     x_range: NDArray[np.float64] = np.linspace(0, 15, 100).reshape(-1, 1)
 
     plot_results(X, y, x_range, b_hat_tradicional, b_hats_tikhonov, media_observaveis)
+    
+    resultados_rss = validacao_monte_carlo(X, y, R=500)
+    
+    estatisticas = calcular_estatisticas(resultados_rss)
+    print("Estatísticas dos modelos:\n", estatisticas)
 
 if __name__ == "__main__":
     main()
