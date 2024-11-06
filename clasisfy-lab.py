@@ -126,7 +126,7 @@ def predizer_gaussiano_cov_agregada(X_test: NDArray[np.float64], medias: Dict[in
     
     return np.array(preds)
 
-def testar_modelos(X: NDArray[np.float64], Y: NDArray[np.int64], num_simulacoes: int = 2):
+def testar_modelos(X: NDArray[np.float64], Y: NDArray[np.int64], num_simulacoes: int = 10):
     resultados = {
         "Modelo": [],
         "Média": [],

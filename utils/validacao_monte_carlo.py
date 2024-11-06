@@ -2,6 +2,21 @@ import numpy as np
 from numpy.typing import NDArray
 from typing import Dict, List
 from sklearn.model_selection import train_test_split
+from services.mqo_tradicional import fit_mqo_tradicional
+from services.mqo_regularizado import fit_mqo_regularizado
+
+def calcular_rss(y_true: NDArray[np.float64], y_pred: NDArray[np.float64]) -> float:
+    """
+    Calcula a soma dos quadrados dos resíduos.
+    
+    Args:
+        y_true (NDArray[np.float64]): Matriz de saída com os valores verdadeiros.
+        y_pred (NDArray[np.float64]): Matriz de saída com os valores preditos.
+
+    Returns:
+        float: Soma dos quadrados dos resíduos.
+    """
+    return np.sum((y_true - y_pred) ** 2)
 
 def validacao_monte_carlo(
     X: NDArray[np.float64], 
@@ -43,7 +58,7 @@ def validacao_monte_carlo(
             rss_results[f'MQO Regularizado (λ={lamb})'].append(calcular_rss(y_test, y_pred_regularizado))
 
         # Média dos observáveis
-        media_observaveis = fit_media_observaveis(y_train)
+        media_observaveis = np.mean(y_train)
         y_pred_media = np.full_like(y_test, media_observaveis)
         rss_results['Média Observáveis'].append(calcular_rss(y_test, y_pred_media))
 

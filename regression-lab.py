@@ -37,19 +37,6 @@ def fit_media_observaveis(y: NDArray[np.float64]) -> float:
     """
     return np.mean(y)
 
-def calcular_rss(y_true: NDArray[np.float64], y_pred: NDArray[np.float64]) -> float:
-    """
-    Calcula a soma dos quadrados dos resíduos.
-    
-    Args:
-        y_true (NDArray[np.float64]): Matriz de saída com os valores verdadeiros.
-        y_pred (NDArray[np.float64]): Matriz de saída com os valores preditos.
-
-    Returns:
-        float: Soma dos quadrados dos resíduos.
-    """
-    return np.sum((y_true - y_pred) ** 2)
-
 def calcular_estatisticas(rss_results: Dict[str, List[float]]) -> pd.DataFrame:
     """
     Calcula estatísticas de RSS (Residual Sum of Squares) para diferentes modelos.
